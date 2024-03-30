@@ -9,16 +9,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PimDeWitte.UnityMainThreadDispatcher;
 
-class EnUp{
-    public void getEnmy(enemyType eData, GameObject enemy){
-        EnemyScript escript = enemy.GetComponent<EnemyScript>();
-        if(escript != null){
-            escript.top = eData.top;
-            escript.left = eData.left;
-        }
-    }
-}
-
 class enemyType
 {
     public float top;
@@ -35,13 +25,11 @@ public class PlayerMovement : MonoBehaviour
     float movX, movY;
     Rigidbody2D rb;
     WebSocket ws;
-    EnUp enup = new EnUp();
     Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
-    Dictionary<int, enemyType> enemiesType = new Dictionary<int, enemyType>();
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId+ "&name=" + UiScript.Name);
+        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
         ws.OnMessage += OnWebSocketMessageReceived;
         ws.Connect();
     }
@@ -57,29 +45,41 @@ public class PlayerMovement : MonoBehaviour
         try
         {
             enemyType eData = JsonConvert.DeserializeObject<enemyType>(e.Data);
-            if(eData.type == "error"){
+            if (eData.type == "error")
+            {
                 SceneManager.LoadScene("LoginScene");
             }
-            
-            if(eData.type == "remove"){
-                Debug.Log("got remove request");
-                // desEnm = enimies[eData.playerId];
-                UnityMainThreadDispatcher.Instance().Enqueue(() => {Destroy(enimies[eData.playerId].gameObject);});
-                enemiesType.Remove(eData.playerId);
-                enimies.Remove(eData.playerId);
-            }
 
-            if (enemiesType.ContainsKey(eData.playerId))
+            else if (eData.type == "remove")
             {
-                enemiesType[eData.playerId] = eData;
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    Destroy(enimies[eData.playerId].gameObject);
+                    enimies.Remove(eData.playerId);
+                    Debug.Log("Deleted");
+                });
             }
+            
             else
             {
-                enemyType et = new enemyType();
-                et.top = eData.top;
-                et.left = eData.left;
-                et.playerId = eData.playerId;
-                enemiesType.Add(eData.playerId, et);
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    if (enimies.ContainsKey(eData.playerId))
+                    {
+                        EnemyScript escript = enimies[eData.playerId].GetComponent<EnemyScript>();
+                        if (escript != null)
+                        {
+                            escript.top = eData.top;
+                            escript.left = eData.left;
+                        }
+
+                    }
+                    else
+                    {
+                        var newEnemy = Instantiate(enemyPrefab, new Vector2(eData.left, eData.top), Quaternion.identity);
+                        enimies.Add(eData.playerId, newEnemy);
+                    }
+                });
             }
         }
         catch (System.Exception ex)
@@ -88,7 +88,8 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    void OnApplicationQuit(){
+    void OnApplicationQuit()
+    {
         Debug.Log("application is getting closed");
         ws.Close();
     }
@@ -96,34 +97,11 @@ public class PlayerMovement : MonoBehaviour
 
     void FixedUpdate()
     {
-        try{
+        try
+        {
             if (ws != null && ws.ReadyState == WebSocketState.Open)
             {
                 ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
-            }
-            updateEnemies();
-        }
-        catch(Exception e){
-            Debug.Log(e.Message);
-        }
-    }
-
-    public void updateEnemies()
-    {
-        try
-        {
-            foreach (var enemy in enemiesType)
-            {
-                if (enimies.ContainsKey(enemy.Key))
-                {
-                    // enimies[enemy.Key].transform.position = new Vector2(enemy.Value.left, enemy.Value.top);
-                    enup.getEnmy(enemy.Value, enimies[enemy.Key]);
-                }
-                else
-                {
-                    var newEnemy = Instantiate(enemyPrefab, new Vector2(enemy.Value.left, enemy.Value.top), Quaternion.identity);
-                    enimies.Add(enemy.Key, newEnemy);
-                }
             }
         }
         catch (Exception e)

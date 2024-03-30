@@ -32,12 +32,10 @@ function RemovePlayer(roomId, playerId) {
 wss.on('connection', (ws,req) => {
     try {
         if (req) {
-            console.log(req.url);
             const parsedUrl = url.parse(req.url, true);
             const roomId = parsedUrl.query.roomId;
             const playerId = parsedUrl.query.playerId;
             const name = parsedUrl.query.name;
-            console.log(roomId, playerId);
             if (roomId && playerId && name) {
                 ws.roomId = roomId;
                 ws.playerId = playerId;
@@ -60,7 +58,6 @@ wss.on('connection', (ws,req) => {
             }
         });
         ws.on("close", () => {
-            console.log("connection close req",ws.roomId,ws.playerId);
             for(let [key, value] of RoomMap.get(ws.roomId)){
                 if(key != ws.playerId){
                     console.log("connection closed");
