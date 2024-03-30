@@ -1,17 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 using TMPro;
-using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
-using Newtonsoft.Json;
 
 public class UiScript : MonoBehaviour
 {
     public static string Name;
     public static string RoomId;
-    public static string PlayerId;
+    public static int PlayerId;
     public TMP_InputField nameInput;
     public TMP_InputField roomIdInput;
 
@@ -28,10 +23,15 @@ public class UiScript : MonoBehaviour
 
     public void GetInput(){
         try{
-            PlayerId = UnityEngine.Random.Range(111111,999999).ToString();
-            Name = nameInput.text;
-            RoomId = roomIdInput.text;
-            SceneManager.LoadScene("SampleScene");
+            if(nameInput.text.Length >= 6 && roomIdInput.text.Length >=6){
+                PlayerId = UnityEngine.Random.Range(111111,999999);
+                Name = nameInput.text;
+                RoomId = roomIdInput.text;
+                SceneManager.LoadScene("SampleScene");
+            }
+            else{
+
+            }
         }
         catch(System.Exception e){
             Debug.Log(e.Message);

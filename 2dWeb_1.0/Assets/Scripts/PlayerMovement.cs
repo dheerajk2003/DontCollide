@@ -4,15 +4,29 @@ using WebSocketSharp;
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
+using UnityEditor.SearchService;
+using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
+using PimDeWitte.UnityMainThreadDispatcher;
+
+class EnUp{
+    public void getEnmy(enemyType eData, GameObject enemy){
+        EnemyScript escript = enemy.GetComponent<EnemyScript>();
+        if(escript != null){
+            escript.top = eData.top;
+            escript.left = eData.left;
+        }
+    }
+}
 
 class enemyType
 {
     public float top;
     public float left;
     public int playerId;
+    public string type;
+    public string name;
 }
-
-
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -21,6 +35,7 @@ public class PlayerMovement : MonoBehaviour
     float movX, movY;
     Rigidbody2D rb;
     WebSocket ws;
+    EnUp enup = new EnUp();
     Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     Dictionary<int, enemyType> enemiesType = new Dictionary<int, enemyType>();
     void Start()
@@ -41,12 +56,22 @@ public class PlayerMovement : MonoBehaviour
     {
         try
         {
-            var eData = JsonConvert.DeserializeObject<enemyType>(e.Data);
+            enemyType eData = JsonConvert.DeserializeObject<enemyType>(e.Data);
+            if(eData.type == "error"){
+                SceneManager.LoadScene("LoginScene");
+            }
+            
+            if(eData.type == "remove"){
+                Debug.Log("got remove request");
+                // desEnm = enimies[eData.playerId];
+                UnityMainThreadDispatcher.Instance().Enqueue(() => {Destroy(enimies[eData.playerId].gameObject);});
+                enemiesType.Remove(eData.playerId);
+                enimies.Remove(eData.playerId);
+            }
 
             if (enemiesType.ContainsKey(eData.playerId))
             {
                 enemiesType[eData.playerId] = eData;
-                Debug.Log(eData.playerId);
             }
             else
             {
@@ -63,6 +88,11 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    void OnApplicationQuit(){
+        Debug.Log("application is getting closed");
+        ws.Close();
+    }
+
 
     void FixedUpdate()
     {
@@ -71,7 +101,6 @@ public class PlayerMovement : MonoBehaviour
             {
                 ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
             }
-
             updateEnemies();
         }
         catch(Exception e){
@@ -87,7 +116,8 @@ public class PlayerMovement : MonoBehaviour
             {
                 if (enimies.ContainsKey(enemy.Key))
                 {
-                    enimies[enemy.Key].transform.position = new Vector2(enemy.Value.left, enemy.Value.top);
+                    // enimies[enemy.Key].transform.position = new Vector2(enemy.Value.left, enemy.Value.top);
+                    enup.getEnmy(enemy.Value, enimies[enemy.Key]);
                 }
                 else
                 {

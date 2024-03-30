@@ -51,6 +51,7 @@ wss.on('connection', (ws,req) => {
                 if (key != ws.playerId) {
                     userMsg.playerId = ws.playerId;
                     userMsg.name = value.name;
+                    userMsg.type = "message";
                     value.ws.send(JSON.stringify(userMsg));
                     setTimeout(() => {
                         
@@ -59,11 +60,22 @@ wss.on('connection', (ws,req) => {
             }
         });
         ws.on("close", () => {
+            console.log("connection close req",ws.roomId,ws.playerId);
+            for(let [key, value] of RoomMap.get(ws.roomId)){
+                if(key != ws.playerId){
+                    console.log("connection closed");
+                    value.ws.send("{type: 'remove', playerId:"+ws.playerId+"}");
+                }
+            }
             RemovePlayer(ws.roomId, ws.playerId);
         })
     }
     catch (error) {
         console.log("ws err: " + error);
+        let msg = {
+            type: "error"
+        }
+        ws.send(JSON.stringify({type: "error"}));
     }
 })
 
