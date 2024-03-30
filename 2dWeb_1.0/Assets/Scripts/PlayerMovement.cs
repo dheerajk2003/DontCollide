@@ -8,6 +8,7 @@ using UnityEditor.SearchService;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PimDeWitte.UnityMainThreadDispatcher;
+// using System.Numerics;
 
 class enemyType
 {
@@ -25,6 +26,9 @@ public class PlayerMovement : MonoBehaviour
     float movX, movY;
     Rigidbody2D rb;
     WebSocket ws;
+    public Transform FirePoint;
+    public Camera cam;
+    Vector2 mousePos;
     Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     void Start()
     {
@@ -37,7 +41,29 @@ public class PlayerMovement : MonoBehaviour
     {
         movX = Input.GetAxisRaw("Horizontal");
         movY = Input.GetAxisRaw("Vertical");
-        rb.velocity = new Vector2(movX, movY) * Speed;
+
+        mousePos = cam.ScreenToWorldPoint(Input.mousePosition);
+    }
+
+    void FixedUpdate()
+    {
+        try
+        {
+            rb.velocity = new Vector2(movX, movY) * Speed;
+
+            Vector2 lookDir = mousePos - rb.position;
+            float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg -90f;
+            rb.rotation = angle;
+            
+            if (ws != null && ws.ReadyState == WebSocketState.Open)
+            {
+                ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.Message);
+        }
     }
 
     void OnWebSocketMessageReceived(object sender, MessageEventArgs e)
@@ -95,18 +121,5 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
-    void FixedUpdate()
-    {
-        try
-        {
-            if (ws != null && ws.ReadyState == WebSocketState.Open)
-            {
-                ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.Log(e.Message);
-        }
-    }
+    
 }

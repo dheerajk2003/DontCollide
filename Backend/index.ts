@@ -45,23 +45,28 @@ wss.on('connection', (ws,req) => {
         ws.on('message', (message) => {
             const userMsg = JSON.parse(message);
             let group = RoomMap.get(ws.roomId);
-            for (let [key, value] of group) {
-                if (key != ws.playerId) {
-                    userMsg.playerId = ws.playerId;
-                    userMsg.name = value.name;
-                    userMsg.type = "message";
-                    value.ws.send(JSON.stringify(userMsg));
-                    setTimeout(() => {
-                        
-                    }, 100000);
+            if(group!= null && group != undefined && group.size > 1){
+                for (let [key, value] of group) {
+                    if (key != ws.playerId) {
+                        userMsg.playerId = ws.playerId;
+                        userMsg.name = value.name;
+                        userMsg.type = "message";
+                        value.ws.send(JSON.stringify(userMsg));
+                        setTimeout(() => {
+                            
+                        }, 100000);
+                    }
                 }
             }
         });
         ws.on("close", () => {
-            for(let [key, value] of RoomMap.get(ws.roomId)){
-                if(key != ws.playerId){
-                    console.log("connection closed");
-                    value.ws.send("{type: 'remove', playerId:"+ws.playerId+"}");
+            let group = RoomMap.get(ws.roomId);
+            if(group != null && group != undefined && group.size > 1){
+                for(let [key, value] of group){
+                    if(key != ws.playerId){
+                        console.log("connection closed");
+                        value.ws.send("{type: 'remove', playerId:"+ws.playerId+"}");
+                    }
                 }
             }
             RemovePlayer(ws.roomId, ws.playerId);
