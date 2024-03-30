@@ -36,46 +36,27 @@ wss.on('connection', (ws,req) => {
             const parsedUrl = url.parse(req.url, true);
             const roomId = parsedUrl.query.roomId;
             const playerId = parsedUrl.query.playerId;
+            const name = parsedUrl.query.name;
             console.log(roomId, playerId);
-            if (roomId && playerId) {
-                let group = RoomMap.get(roomId);
+            if (roomId && playerId && name) {
                 ws.roomId = roomId;
                 ws.playerId = playerId;
-                let plyr = group.get(playerId);
-                plyr.ws = ws;
-                plyr.ws.send("{playerId: 'connected'}");
+                AddPlayer(roomId, name, ws, playerId);
             }
         }
-        // if(!ws.playerId){
-        //     ws.playerId = count;
-        //     count++;
-        // }
-        // console.log("a new connection " + ws.roomId);
         ws.on('message', (message) => {
             const userMsg = JSON.parse(message);
-            // wss.clients.forEach(client => {
-            //     if (client !== ws && client.readyState === webSocket.OPEN && client.roomId === ws.roomId) {
-            //         userMsg.playerId = ws.playerId;
-            //         userMsg.count = count;
-            //         client.send(JSON.stringify(userMsg));
-            //     }
-            // });
             let group = RoomMap.get(ws.roomId);
             for (let [key, value] of group) {
                 if (key != ws.playerId) {
-                    console.log(key, value.name);
-                    // userMsg.playerId = ws.playerId;
-                    // userMsg.name = value.name;
-                    // let g = RoomMap.get(key);
-                    // console.log(g.get(userMsg.playerId));
-                    // console.log(value.ws.playerId);
-                    // value.ws.send(JSON.stringify(userMsg));
+                    userMsg.playerId = ws.playerId;
+                    userMsg.name = value.name;
+                    value.ws.send(JSON.stringify(userMsg));
                     setTimeout(() => {
                         
                     }, 100000);
                 }
             }
-            // console.log(`${userMsg.top} and ${userMsg.left}`);
         });
         ws.on("close", () => {
             RemovePlayer(ws.roomId, ws.playerId);
@@ -88,19 +69,6 @@ wss.on('connection', (ws,req) => {
 
 app.get("/", (req, res) => {
     res.send("hello");
-})
-
-app.post("/newCon", (req, res) => {
-    try {
-        const data = req.body;
-        AddPlayer(data.roomId, data.name, null, data.playerId);
-        console.log(data);
-        res.sendStatus(200);
-    }
-    catch(error) {
-        console.log(error);
-        res.sendStatus(500);
-    }
 })
 
 server.listen(4000, () => {

@@ -31,27 +31,10 @@ public class UiScript : MonoBehaviour
             PlayerId = UnityEngine.Random.Range(111111,999999).ToString();
             Name = nameInput.text;
             RoomId = roomIdInput.text;
-            StartCoroutine(Upload());
+            SceneManager.LoadScene("SampleScene");
         }
         catch(System.Exception e){
             Debug.Log(e.Message);
         }
-    }
-
-    IEnumerator Upload(){
-        string jsonStr = JsonConvert.SerializeObject(new {name= Name, playerId= PlayerId, roomId= RoomId});
-        Debug.Log(jsonStr);
-        using (UnityWebRequest www = UnityWebRequest.Post("http://localhost:4000/newCon", jsonStr,"application/json")){
-            yield return www.SendWebRequest();
-            if (www.result != UnityWebRequest.Result.Success)
-            {
-                Debug.LogError(www.error);
-            }
-            else
-            {
-                Debug.Log("Form upload complete!");
-                SceneManager.LoadScene("SampleScene");
-            }
-        } 
     }
 }

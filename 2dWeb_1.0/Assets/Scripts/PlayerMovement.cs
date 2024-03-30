@@ -26,15 +26,10 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        // UriBuilder uri = new UriBuilder("ws://localhost:4000");
-        // uri.Query = $"roomId={UiScript.RoomId}&playerId={UiScript.PlayerId}";
-        // ws = new WebSocket(uri.Uri.ToString());
-        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId);
+        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId+ "&name=" + UiScript.Name);
         ws.OnMessage += OnWebSocketMessageReceived;
         ws.Connect();
     }
-
-    // Update is called once per frame
     void Update()
     {
         movX = Input.GetAxisRaw("Horizontal");
