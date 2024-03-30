@@ -26,7 +26,10 @@ public class PlayerMovement : MonoBehaviour
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
-        ws = new WebSocket("ws://localhost:4000/1");
+        // UriBuilder uri = new UriBuilder("ws://localhost:4000");
+        // uri.Query = $"roomId={UiScript.RoomId}&playerId={UiScript.PlayerId}";
+        // ws = new WebSocket(uri.Uri.ToString());
+        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId);
         ws.OnMessage += OnWebSocketMessageReceived;
         ws.Connect();
     }
@@ -48,6 +51,7 @@ public class PlayerMovement : MonoBehaviour
             if (enemiesType.ContainsKey(eData.playerId))
             {
                 enemiesType[eData.playerId] = eData;
+                Debug.Log(eData.playerId);
             }
             else
             {
