@@ -7,7 +7,6 @@ public class Shooting : MonoBehaviour
     public Transform FirePoint;
     public GameObject BulletPrefab;
     public BoxCollider2D box;
-    public int BulletForce;
     // Start is called before the first frame update
     void Start()
     {
@@ -24,8 +23,10 @@ public class Shooting : MonoBehaviour
     }
 
     void Fire(){
+        DataScript.sendBullet(FirePoint.position.x,FirePoint.position.y,FirePoint);
         GameObject bullet = Instantiate(BulletPrefab,FirePoint.position, FirePoint.rotation);
+        Debug.Log(FirePoint.rotation);
         Rigidbody2D rb = bullet.GetComponent<Rigidbody2D>();
-        rb.AddForce(FirePoint.up * BulletForce, ForceMode2D.Impulse);
+        rb.AddForce(FirePoint.up * DataScript.bulletForce, ForceMode2D.Impulse);
     }
 }

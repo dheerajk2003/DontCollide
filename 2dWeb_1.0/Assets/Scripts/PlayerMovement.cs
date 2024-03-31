@@ -16,12 +16,15 @@ public class enemyType
     public int playerId;
     public string type;
     public string name;
+    public float rotation;
+    public int health;
 }
 
 public class PlayerMovement : MonoBehaviour
 {
     public float Speed;
     public GameObject enemyPrefab;
+    public GameObject bulletPrefab;
     float movX, movY;
     Rigidbody2D rb;
     WebSocket ws;
@@ -56,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (ws != null && ws.ReadyState == WebSocketState.Open)
             {
-                ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
+                ws.Send(JsonConvert.SerializeObject(new { type="message", top = rb.position.y, left = rb.position.x, health = DataScript.health }));
             }
         }
         catch (Exception e)
@@ -70,9 +73,9 @@ public class PlayerMovement : MonoBehaviour
         try
         {
             enemyType eData = JsonConvert.DeserializeObject<enemyType>(e.Data);
-            if(eData.type != "message"){
-                Debug.Log("not msg " + eData.playerId + " " + UiScript.PlayerId);
-            }
+            // if(eData.type != "message"){
+            //     Debug.Log("not msg " + eData.playerId + " " + UiScript.PlayerId);
+            // }
             if (eData.type == "error")
             {
                 ws.Close();
@@ -81,15 +84,39 @@ public class PlayerMovement : MonoBehaviour
 
             else if (eData.type == "remove")
             {
-                Debug.Log("inside remove" + eData.playerId + " " + UiScript.PlayerId);
                 DesEnemy(eData);
 
             }
 
             else if(eData.type == "deMe"){
-                Debug.Log("inside remove if");
                 UnityMainThreadDispatcher.Instance().Enqueue(() => {
-                SceneManager.LoadScene("LoginScene");
+                    DataScript.clearAll();
+                    SceneManager.LoadScene("LoginScene");
+                });
+            }
+
+            else if(eData.type == "bullet"){
+                Debug.Log("creating bullet");
+                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                    Quaternion rotations = Quaternion.Euler(new Vector3(0, 0, eData.rotation));
+                    GameObject bul = Instantiate(bulletPrefab, new Vector3(eData.left, eData.top,0),rotations);
+                    Debug.Log("rotation  = " + eData.rotation);
+                    Rigidbody2D rbb = bul.GetComponent<Rigidbody2D>();
+                    rbb.AddForce(rotations * Vector2.up * 20, ForceMode2D.Impulse);
+                });
+            }
+
+            else if(eData.type == "health"){
+                Debug.Log("recived health = " + eData.health);
+                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                    if(UiScript.PlayerId == eData.playerId){
+                        DataScript.health = eData.health;
+                        Debug.Log("MyHealth = " +DataScript.health);
+                    }
+                    else if(DataScript.enimies.ContainsKey(eData.playerId)){
+                        EnemyScript escpt = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
+                        escpt.health = eData.health;
+                    }
                 });
             }
 
@@ -104,6 +131,8 @@ public class PlayerMovement : MonoBehaviour
                         {
                             escript.top = eData.top;
                             escript.left = eData.left;
+                            escript.health = eData.health;
+                            Debug.Log("enemy health in pm = " + escript.health + " " + eData.health);
                         }
 
                     }

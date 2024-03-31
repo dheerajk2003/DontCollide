@@ -47,6 +47,9 @@ wss.on('connection', (ws, req) => {
             const userMsg = JSON.parse(message);
             let group = RoomMap.get(ws.roomId);
             if (group != null && group != undefined && group.size >= 1) {
+                // if(userMsg.type != "message"){
+                //     console.log("Type: " + userMsg.type);
+                // }
                 if (userMsg.type == "remove") {
                     for (let [key, value] of group) {
                         if (userMsg.playerId == key) {
@@ -60,12 +63,20 @@ wss.on('connection', (ws, req) => {
                         }
                     }
                 }
+                else if(userMsg.type == "health"){
+                    console.log("sending health = " + userMsg.health);
+                    let group = RoomMap.get(ws.roomId);
+                    if(group != null && group != undefined && group.size >= 1){
+                        for (let [key, value] of group) {
+                            value.ws.send(JSON.stringify(userMsg));
+                        }
+                    }
+                }
                 else {
                     for (let [key, value] of group) {
                         if (key != ws.playerId) {
                             userMsg.playerId = ws.playerId;
                             userMsg.name = value.name;
-                            userMsg.type = "message";
                             value.ws.send(JSON.stringify(userMsg));
                         }
                     }

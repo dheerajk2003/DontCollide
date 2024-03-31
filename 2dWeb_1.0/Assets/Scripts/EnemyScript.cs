@@ -47,6 +47,8 @@ public class EnemyScript : MonoBehaviour
         if (col.gameObject.tag == "bullet")
         {
             health -= damage;
+            Debug.Log(health);
+            DataScript.sendHealth(gameObject,health);
         }
     }
 }
