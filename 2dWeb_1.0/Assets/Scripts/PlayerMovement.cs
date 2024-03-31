@@ -8,9 +8,8 @@ using UnityEditor.SearchService;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PimDeWitte.UnityMainThreadDispatcher;
-// using System.Numerics;
 
-class enemyType
+public class enemyType
 {
     public float top;
     public float left;
@@ -29,13 +28,13 @@ public class PlayerMovement : MonoBehaviour
     public Transform FirePoint;
     public Camera cam;
     Vector2 mousePos;
-    Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
         ws.OnMessage += OnWebSocketMessageReceived;
         ws.Connect();
+        DataScript.ws = ws;
     }
     void Update()
     {
@@ -52,9 +51,9 @@ public class PlayerMovement : MonoBehaviour
             rb.velocity = new Vector2(movX, movY) * Speed;
 
             Vector2 lookDir = mousePos - rb.position;
-            float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg -90f;
+            float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90f;
             rb.rotation = angle;
-            
+
             if (ws != null && ws.ReadyState == WebSocketState.Open)
             {
                 ws.Send(JsonConvert.SerializeObject(new { top = rb.position.y, left = rb.position.x }));
@@ -71,28 +70,36 @@ public class PlayerMovement : MonoBehaviour
         try
         {
             enemyType eData = JsonConvert.DeserializeObject<enemyType>(e.Data);
+            if(eData.type != "message"){
+                Debug.Log("not msg " + eData.playerId + " " + UiScript.PlayerId);
+            }
             if (eData.type == "error")
             {
+                ws.Close();
                 SceneManager.LoadScene("LoginScene");
             }
 
             else if (eData.type == "remove")
             {
-                UnityMainThreadDispatcher.Instance().Enqueue(() =>
-                {
-                    Destroy(enimies[eData.playerId].gameObject);
-                    enimies.Remove(eData.playerId);
-                    Debug.Log("Deleted");
+                Debug.Log("inside remove" + eData.playerId + " " + UiScript.PlayerId);
+                DesEnemy(eData);
+
+            }
+
+            else if(eData.type == "deMe"){
+                Debug.Log("inside remove if");
+                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+                SceneManager.LoadScene("LoginScene");
                 });
             }
-            
+
             else
             {
                 UnityMainThreadDispatcher.Instance().Enqueue(() =>
                 {
-                    if (enimies.ContainsKey(eData.playerId))
+                    if (DataScript.enimies.ContainsKey(eData.playerId))
                     {
-                        EnemyScript escript = enimies[eData.playerId].GetComponent<EnemyScript>();
+                        EnemyScript escript = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
                         if (escript != null)
                         {
                             escript.top = eData.top;
@@ -100,10 +107,10 @@ public class PlayerMovement : MonoBehaviour
                         }
 
                     }
-                    else
+                    else if (!DataScript.removedEnimies.Contains(eData.playerId))
                     {
                         var newEnemy = Instantiate(enemyPrefab, new Vector2(eData.left, eData.top), Quaternion.identity);
-                        enimies.Add(eData.playerId, newEnemy);
+                        DataScript.enimies.Add(eData.playerId, newEnemy);
                     }
                 });
             }
@@ -120,6 +127,20 @@ public class PlayerMovement : MonoBehaviour
         ws.Close();
     }
 
+    void DesEnemy(enemyType eData)
+    {
+        UnityMainThreadDispatcher.Instance().Enqueue(() =>
+        {
+            if(DataScript.enimies.ContainsKey(eData.playerId))
+            {
+                Destroy(DataScript.enimies[eData.playerId].gameObject);
+                DataScript.removedEnimies.Add(eData.playerId);
+                DataScript.enimies.Remove(eData.playerId);
+            }
+            else{
+                Debug.Log("not found" + eData.playerId);
+            }
+        });
+    }
 
-    
 }
