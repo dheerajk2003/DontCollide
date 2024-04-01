@@ -8,6 +8,7 @@ using UnityEditor.SearchService;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PimDeWitte.UnityMainThreadDispatcher;
+using Unity.VisualScripting;
 
 public class enemyType
 {
@@ -31,6 +32,8 @@ public class PlayerMovement : MonoBehaviour
     public Transform FirePoint;
     public Camera cam;
     Vector2 mousePos;
+    private bool canDash = true;
+    public SpriteRenderer sr;
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -45,13 +48,27 @@ public class PlayerMovement : MonoBehaviour
         movY = Input.GetAxisRaw("Vertical");
 
         mousePos = cam.ScreenToWorldPoint(Input.mousePosition);
+
+        if(Input.GetKeyDown(KeyCode.LeftShift)){
+            if(canDash){
+                Speed = 30;
+                StartCoroutine(DashCoundown());
+                canDash = false;
+            }
+        }
     }
 
     void FixedUpdate()
     {
         try
         {
-            rb.velocity = new Vector2(movX, movY) * Speed;
+            if(movX != 0 && movY != 0){
+                rb.velocity = new Vector2(movX/1.3f, movY/1.3f) * Speed;
+            }
+            else{
+                rb.velocity = new Vector2(movX, movY) * Speed;
+            }
+            Debug.Log(movX + " in " + movY);
 
             Vector2 lookDir = mousePos - rb.position;
             float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90f;
@@ -91,6 +108,7 @@ public class PlayerMovement : MonoBehaviour
             else if(eData.type == "deMe"){
                 UnityMainThreadDispatcher.Instance().Enqueue(() => {
                     DataScript.clearAll();
+                    System.GC.Collect();
                     SceneManager.LoadScene("LoginScene");
                 });
             }
@@ -100,7 +118,6 @@ public class PlayerMovement : MonoBehaviour
                 UnityMainThreadDispatcher.Instance().Enqueue(() => {
                     Quaternion rotations = Quaternion.Euler(new Vector3(0, 0, eData.rotation));
                     GameObject bul = Instantiate(bulletPrefab, new Vector3(eData.left, eData.top,0),rotations);
-                    Debug.Log("rotation  = " + eData.rotation);
                     Rigidbody2D rbb = bul.GetComponent<Rigidbody2D>();
                     rbb.AddForce(rotations * Vector2.up * 20, ForceMode2D.Impulse);
                 });
@@ -111,7 +128,6 @@ public class PlayerMovement : MonoBehaviour
                 UnityMainThreadDispatcher.Instance().Enqueue(() => {
                     if(UiScript.PlayerId == eData.playerId){
                         DataScript.health = eData.health;
-                        Debug.Log("MyHealth = " +DataScript.health);
                     }
                     else if(DataScript.enimies.ContainsKey(eData.playerId)){
                         EnemyScript escpt = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
@@ -172,4 +188,16 @@ public class PlayerMovement : MonoBehaviour
         });
     }
 
+    IEnumerator DashCoundown(){
+        sr.color = Color.red;
+        yield return new WaitForSeconds(.1f);
+        Speed = 6;
+        StartCoroutine(DashCoolDown());
+    }
+
+    IEnumerator DashCoolDown(){
+        yield return new WaitForSeconds(3f);
+        sr.color = Color.green;
+        canDash = true;
+    }
 }
