@@ -19,12 +19,17 @@ public class EnemyScript : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
     }
+
+    void Awake(){
+        health = 3;
+    }
     void Update()
     {
         try
         {
             if (health <= 0)
             {
+                Debug.Log("Health is zero");
                 int id = 0;
                 foreach (KeyValuePair<int, GameObject> temp in DataScript.enimies)
                 {
@@ -57,7 +62,6 @@ public class EnemyScript : MonoBehaviour
                 txtHealth.color = Color.blue;
                 break;
         }
-        Debug.Log(rb.position.x + "  " + rb.position.y);
     }
 
     void OnCollisionEnter2D(Collision2D col)
@@ -65,7 +69,6 @@ public class EnemyScript : MonoBehaviour
         if (col.gameObject.tag == "bullet")
         {
             health -= damage;
-            Debug.Log(health);
             DataScript.sendHealth(gameObject,health);
         }
     }

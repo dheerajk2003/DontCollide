@@ -20,9 +20,8 @@ function AddPlayer(roomId, _name, _ws, playerId) {
 function RemovePlayer(roomId, pid) {
     let group = RoomMap.get(roomId);
     if (group != null && group != undefined && group.size >= 1) {
-        console.log("inside remove player" + group.get(pid));
+        // console.log("inside remove player" + group.get(pid));
         group.delete(pid);
-        console.log(group.get(pid));
         if (group.size == 0) {
             RoomMap.delete(roomId);
         }
@@ -53,18 +52,17 @@ wss.on('connection', (ws, req) => {
                 if (userMsg.type == "remove") {
                     for (let [key, value] of group) {
                         if (userMsg.playerId == key) {
-                            console.log("delete me here " + userMsg.playerId + " " + key);
+                            // console.log("delete me here " + userMsg.playerId + " " + key);
                             value.ws.send(JSON.stringify({ type: "deMe" }));
                             RemovePlayer(ws.roomId, key);
                         }
                         else{
-                            console.log("delete another " + userMsg.playerId + " " + key);
+                            // console.log("delete another " + userMsg.playerId + " " + key);
                             value.ws.send(JSON.stringify({ type: "remove", playerId: userMsg.playerId }));
                         }
                     }
                 }
                 else if(userMsg.type == "health"){
-                    console.log("sending health = " + userMsg.health);
                     let group = RoomMap.get(ws.roomId);
                     if(group != null && group != undefined && group.size >= 1){
                         for (let [key, value] of group) {

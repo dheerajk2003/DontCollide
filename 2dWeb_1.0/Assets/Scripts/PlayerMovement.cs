@@ -4,7 +4,7 @@ using WebSocketSharp;
 using UnityEngine;
 using Newtonsoft.Json;
 using System;
-using UnityEditor.SearchService;
+// using UnityEditor.SearchService;
 using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using PimDeWitte.UnityMainThreadDispatcher;
@@ -34,27 +34,51 @@ public class PlayerMovement : MonoBehaviour
     Vector2 mousePos;
     private bool canDash = true;
     public SpriteRenderer sr;
+    public Transform CamFollow;
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-        ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
-        ws.OnMessage += OnWebSocketMessageReceived;
-        ws.Connect();
-        DataScript.ws = ws;
+        try
+        {
+            rb = GetComponent<Rigidbody2D>();
+            rb.position = new Vector2(DataScript.ranPos[UnityEngine.Random.Range(0,3)],DataScript.ranPos[UnityEngine.Random.Range(0,3)]);
+            ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
+            Debug.Log("connected ");
+            ws.OnMessage += OnWebSocketMessageReceived;
+            ws.Connect();
+            DataScript.ws = ws;
+        }
+        catch (Exception e)
+        {
+            Debug.Log(e.Message);
+        }
     }
     void Update()
     {
-        movX = Input.GetAxisRaw("Horizontal");
-        movY = Input.GetAxisRaw("Vertical");
+        try
+        {
+            movX = Input.GetAxisRaw("Horizontal");
+            movY = Input.GetAxisRaw("Vertical");
 
-        mousePos = cam.ScreenToWorldPoint(Input.mousePosition);
+            mousePos = cam.ScreenToWorldPoint(Input.mousePosition);
 
-        if(Input.GetKeyDown(KeyCode.LeftShift)){
-            if(canDash){
-                Speed = 30;
-                StartCoroutine(DashCoundown());
-                canDash = false;
+            if (Input.GetKeyDown(KeyCode.LeftShift))
+            {
+                if (canDash)
+                {
+                    Speed = 30;
+                    StartCoroutine(DashCoundown());
+                    canDash = false;
+                }
             }
+
+            SceneManager.sceneUnloaded += (Scene scene) =>
+            {
+                ws.Close();
+                // ws = null;
+            };
+        }
+        catch(Exception e){
+            Debug.Log(e.Message);
         }
     }
 
@@ -62,13 +86,15 @@ public class PlayerMovement : MonoBehaviour
     {
         try
         {
-            if(movX != 0 && movY != 0){
-                rb.velocity = new Vector2(movX/1.3f, movY/1.3f) * Speed;
+            if (movX != 0 && movY != 0)
+            {
+                rb.velocity = new Vector2(movX / 1.4f, movY / 1.4f) * Speed;
             }
-            else{
+            else
+            {
                 rb.velocity = new Vector2(movX, movY) * Speed;
             }
-            Debug.Log(movX + " in " + movY);
+            // Debug.Log(rb.position.x + " " + rb.position.y);
 
             Vector2 lookDir = mousePos - rb.position;
             float angle = Mathf.Atan2(lookDir.y, lookDir.x) * Mathf.Rad2Deg - 90f;
@@ -76,8 +102,10 @@ public class PlayerMovement : MonoBehaviour
 
             if (ws != null && ws.ReadyState == WebSocketState.Open)
             {
-                ws.Send(JsonConvert.SerializeObject(new { type="message", top = rb.position.y, left = rb.position.x, health = DataScript.health }));
+                ws.Send(JsonConvert.SerializeObject(new { type = "message", top = rb.position.y, left = rb.position.x, health = DataScript.health }));
             }
+
+            CamFollow.position = new Vector2(rb.position.x, rb.position.y);
         }
         catch (Exception e)
         {
@@ -95,6 +123,7 @@ public class PlayerMovement : MonoBehaviour
             // }
             if (eData.type == "error")
             {
+                Debug.Log("Error occured");
                 ws.Close();
                 SceneManager.LoadScene("LoginScene");
             }
@@ -105,31 +134,38 @@ public class PlayerMovement : MonoBehaviour
 
             }
 
-            else if(eData.type == "deMe"){
-                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+            else if (eData.type == "deMe")
+            {
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
                     DataScript.clearAll();
                     System.GC.Collect();
                     SceneManager.LoadScene("LoginScene");
                 });
             }
 
-            else if(eData.type == "bullet"){
-                Debug.Log("creating bullet");
-                UnityMainThreadDispatcher.Instance().Enqueue(() => {
+            else if (eData.type == "bullet")
+            {
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
                     Quaternion rotations = Quaternion.Euler(new Vector3(0, 0, eData.rotation));
-                    GameObject bul = Instantiate(bulletPrefab, new Vector3(eData.left, eData.top,0),rotations);
+                    GameObject bul = Instantiate(bulletPrefab, new Vector3(eData.left, eData.top, 0), rotations);
                     Rigidbody2D rbb = bul.GetComponent<Rigidbody2D>();
                     rbb.AddForce(rotations * Vector2.up * 20, ForceMode2D.Impulse);
                 });
             }
 
-            else if(eData.type == "health"){
+            else if (eData.type == "health")
+            {
                 Debug.Log("recived health = " + eData.health);
-                UnityMainThreadDispatcher.Instance().Enqueue(() => {
-                    if(UiScript.PlayerId == eData.playerId){
+                UnityMainThreadDispatcher.Instance().Enqueue(() =>
+                {
+                    if (UiScript.PlayerId == eData.playerId)
+                    {
                         DataScript.health = eData.health;
                     }
-                    else if(DataScript.enimies.ContainsKey(eData.playerId)){
+                    else if (DataScript.enimies.ContainsKey(eData.playerId))
+                    {
                         EnemyScript escpt = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
                         escpt.health = eData.health;
                     }
@@ -145,15 +181,16 @@ public class PlayerMovement : MonoBehaviour
                         EnemyScript escript = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
                         if (escript != null)
                         {
-                            if(escript.top != eData.top) escript.top = eData.top;
-                            if(escript.left != eData.left) escript.left = eData.left;
-                            if(escript.health != eData.health) escript.health = eData.health;
-                            if(escript.ename != eData.name) escript.ename = eData.name;
+                            if (escript.top != eData.top) escript.top = eData.top;
+                            if (escript.left != eData.left) escript.left = eData.left;
+                            if (escript.health != eData.health) escript.health = eData.health;
+                            if (escript.ename != eData.name) escript.ename = eData.name;
                         }
 
                     }
                     else if (!DataScript.removedEnimies.Contains(eData.playerId))
                     {
+                        Debug.Log("creating enemy" + eData.playerId);
                         var newEnemy = Instantiate(enemyPrefab, new Vector2(eData.left, eData.top), Quaternion.identity);
                         DataScript.enimies.Add(eData.playerId, newEnemy);
                     }
@@ -176,28 +213,34 @@ public class PlayerMovement : MonoBehaviour
     {
         UnityMainThreadDispatcher.Instance().Enqueue(() =>
         {
-            if(DataScript.enimies.ContainsKey(eData.playerId))
+            if (DataScript.enimies.ContainsKey(eData.playerId))
             {
+                Debug.Log("destroying enemy" + eData.playerId);
                 Destroy(DataScript.enimies[eData.playerId].gameObject);
                 DataScript.removedEnimies.Add(eData.playerId);
                 DataScript.enimies.Remove(eData.playerId);
             }
-            else{
+            else
+            {
                 Debug.Log("not found" + eData.playerId);
             }
         });
     }
 
-    IEnumerator DashCoundown(){
+    IEnumerator DashCoundown()
+    {
         sr.color = Color.red;
         yield return new WaitForSeconds(.1f);
-        Speed = 6;
+        Speed = 5;
         StartCoroutine(DashCoolDown());
     }
 
-    IEnumerator DashCoolDown(){
-        yield return new WaitForSeconds(3f);
+    IEnumerator DashCoolDown()
+    {
+        yield return new WaitForSeconds(2f);
         sr.color = Color.green;
         canDash = true;
     }
+
+    
 }

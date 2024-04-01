@@ -13,11 +13,13 @@ public class DataScript : MonoBehaviour
     public static Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     public static HashSet<int> removedEnimies = new HashSet<int>();
     public TMP_Text txtHealth;
-
-
     public static int bulletForce = 20;
-
     public static int health = 3;
+    public static int[] ranPos = {-4,4,-10,10};
+
+    void Awake(){
+        health = 3;
+    }
 
     void FixedUpdate(){
         txtHealth.text = health.ToString();
@@ -42,7 +44,6 @@ public class DataScript : MonoBehaviour
     public static void sendBullet(float left, float top, Transform transform){
         try{
             float rotation = transform.rotation.eulerAngles.z;
-            Debug.Log("sending rotation : " + rotation);
             ws.Send(JsonConvert.SerializeObject(new {type="bullet", left=left, top=top, rotation=rotation}));
         }
         catch(Exception e){
@@ -53,7 +54,6 @@ public class DataScript : MonoBehaviour
     public static void sendHealth(GameObject gameObject, int health){
         // foreach(KeyValuePair<int, GameObject> temp in enimies){}
         int key = enimies.FirstOrDefault(x => x.Value == gameObject).Key;
-        Debug.Log("health in ds = " + health);
         ws.Send(JsonConvert.SerializeObject(new {type="health", health=health, playerId= key}));
     }
 
