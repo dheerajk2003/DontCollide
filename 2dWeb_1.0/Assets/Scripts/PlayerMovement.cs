@@ -129,10 +129,10 @@ public class PlayerMovement : MonoBehaviour
                         EnemyScript escript = DataScript.enimies[eData.playerId].GetComponent<EnemyScript>();
                         if (escript != null)
                         {
-                            escript.top = eData.top;
-                            escript.left = eData.left;
-                            escript.health = eData.health;
-                            Debug.Log("enemy health in pm = " + escript.health + " " + eData.health);
+                            if(escript.top != eData.top) escript.top = eData.top;
+                            if(escript.left != eData.left) escript.left = eData.left;
+                            if(escript.health != eData.health) escript.health = eData.health;
+                            if(escript.ename != eData.name) escript.ename = eData.name;
                         }
 
                     }

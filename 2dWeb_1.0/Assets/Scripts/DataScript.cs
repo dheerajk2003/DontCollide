@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json;
+using TMPro;
 using UnityEngine;
 using WebSocketSharp;
 
@@ -11,10 +12,27 @@ public class DataScript : MonoBehaviour
     public static WebSocket ws;
     public static Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     public static HashSet<int> removedEnimies = new HashSet<int>();
+    public TMP_Text txtHealth;
+
 
     public static int bulletForce = 20;
 
     public static int health = 3;
+
+    void FixedUpdate(){
+        txtHealth.text = health.ToString();
+        switch(health){
+            case 1:
+                txtHealth.color = Color.red;
+                break;
+            case 2:
+                txtHealth.color = Color.green;
+                break;
+            case 3:
+                txtHealth.color = Color.blue;
+                break;
+        }
+    }
 
     public static void sendDelete(int pid)
     {
