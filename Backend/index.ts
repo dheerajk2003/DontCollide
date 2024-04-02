@@ -2,10 +2,14 @@ const express = require('express');
 const webSocket = require('ws');
 const bodyParser = require('body-parser');
 const url = require('url');
+const path = require('path');
 const app = express();
 app.use(express.json());
 const server = require('http').createServer(app);
 const wss = new webSocket.Server({ server });
+
+app.use('/Build', express.static(path.join(__dirname,'/build1/Build')));
+app.use('/TemplateData', express.static(path.join(__dirname,'/build1/TemplateData')));
 
 let RoomMap = new Map();
 
@@ -30,6 +34,7 @@ function RemovePlayer(roomId, pid) {
 }
 
 wss.on('connection', (ws, req) => {
+    console.log("new connection");
     try {
         if (req) {
             const parsedUrl = url.parse(req.url, true);
@@ -98,7 +103,7 @@ wss.on('connection', (ws, req) => {
 })
 
 app.get("/", (req, res) => {
-    res.send("hello");
+    res.sendFile(__dirname + "/build1/index.html");
 })
 
 server.listen(4000, () => {
