@@ -23,7 +23,7 @@ public class enemyType
 
 public class PlayerMovement : MonoBehaviour
 {
-    public float Speed;
+    float Speed = 4;
     public GameObject enemyPrefab;
     public GameObject bulletPrefab;
     float movX, movY;
@@ -41,7 +41,9 @@ public class PlayerMovement : MonoBehaviour
         {
             rb = GetComponent<Rigidbody2D>();
             rb.position = new Vector2(DataScript.ranPos[UnityEngine.Random.Range(0,3)],DataScript.ranPos[UnityEngine.Random.Range(0,3)]);
-            ws = new WebSocket("ws://localhost:4000?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
+            UiScript.PlayerId = UnityEngine.Random.Range(111111,999999);
+            ws = new WebSocket("ws://"+UiScript.ServerIp+"?roomId=" + UiScript.RoomId + "&playerId=" + UiScript.PlayerId + "&name=" + UiScript.Name);
+            // ws.SslConfiguration.EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12;
             Debug.Log("connected ");
             ws.OnMessage += OnWebSocketMessageReceived;
             ws.Connect();
@@ -140,7 +142,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     DataScript.clearAll();
                     System.GC.Collect();
-                    SceneManager.LoadScene("LoginScene");
+                    SceneManager.LoadScene("GoverScene");
                 });
             }
 
@@ -192,6 +194,7 @@ public class PlayerMovement : MonoBehaviour
                     {
                         Debug.Log("creating enemy" + eData.playerId);
                         var newEnemy = Instantiate(enemyPrefab, new Vector2(eData.left, eData.top), Quaternion.identity);
+                        EnemyScript escript = newEnemy.GetComponent<EnemyScript>();
                         DataScript.enimies.Add(eData.playerId, newEnemy);
                     }
                 });
@@ -231,7 +234,7 @@ public class PlayerMovement : MonoBehaviour
     {
         sr.color = Color.red;
         yield return new WaitForSeconds(.1f);
-        Speed = 5;
+        Speed = 4;
         StartCoroutine(DashCoolDown());
     }
 

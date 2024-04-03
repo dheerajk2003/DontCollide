@@ -13,12 +13,12 @@ app.use('/TemplateData', express.static(path.join(__dirname,'/build1/TemplateDat
 
 let RoomMap = new Map();
 
-function AddPlayer(roomId, _name, _ws, playerId) {
+function AddPlayer(roomId, _ws, playerId) {
     if (!RoomMap.has(roomId)) {
         RoomMap.set(roomId, new Map());
     }
     let group = RoomMap.get(roomId);
-    group.set(playerId, { name: _name, ws: _ws })
+    group.set(playerId, { ws: _ws })
 }
 
 function RemovePlayer(roomId, pid) {
@@ -44,7 +44,8 @@ wss.on('connection', (ws, req) => {
             if (roomId && playerId && name) {
                 ws.roomId = roomId;
                 ws.playerId = playerId;
-                AddPlayer(roomId, name, ws, playerId);
+                ws.name = name;
+                AddPlayer(roomId, ws, playerId);
             }
         }
         ws.on('message', (message) => {
@@ -79,7 +80,7 @@ wss.on('connection', (ws, req) => {
                     for (let [key, value] of group) {
                         if (key != ws.playerId) {
                             userMsg.playerId = ws.playerId;
-                            userMsg.name = value.name;
+                            userMsg.name = ws.name;
                             value.ws.send(JSON.stringify(userMsg));
                         }
                     }

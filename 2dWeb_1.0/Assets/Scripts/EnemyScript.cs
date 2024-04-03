@@ -30,6 +30,7 @@ public class EnemyScript : MonoBehaviour
             if (health <= 0)
             {
                 Debug.Log("Health is zero");
+                DataScript.score += 1;
                 int id = 0;
                 foreach (KeyValuePair<int, GameObject> temp in DataScript.enimies)
                 {

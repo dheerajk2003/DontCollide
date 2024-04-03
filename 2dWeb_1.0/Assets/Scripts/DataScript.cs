@@ -13,8 +13,10 @@ public class DataScript : MonoBehaviour
     public static Dictionary<int, GameObject> enimies = new Dictionary<int, GameObject>();
     public static HashSet<int> removedEnimies = new HashSet<int>();
     public TMP_Text txtHealth;
-    public static int bulletForce = 20;
+    public TMP_Text txtScore;
+    public static int bulletForce = 16;
     public static int health = 3;
+    public static int score = 0;
     public static int[] ranPos = {-4,4,-10,10};
 
     void Awake(){
@@ -23,6 +25,7 @@ public class DataScript : MonoBehaviour
 
     void FixedUpdate(){
         txtHealth.text = health.ToString();
+        txtScore.text = score.ToString();
         switch(health){
             case 1:
                 txtHealth.color = Color.red;
